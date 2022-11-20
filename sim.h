@@ -23,7 +23,7 @@ struct Simulation {
 	Process ** processes;
 	Algorithm ** algos;
 
-	void print(int ** traces);
+	void print(int ** mat,int traceOrStats);
 	void simulate();
 	void insertProcess( Process * process );
 	void insertAlgo( Algorithm * algo);

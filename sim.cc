@@ -56,32 +56,32 @@ void Simulation::insertAlgo( Algorithm * algo ){
 	noOfAlgos++;
 }
 
-int FCFS(Queue queue,int parameter,int * i){
+int FCFS(Simulation sim,int p){
 	return 1;
 }
-int RR(Queue queue,int parameter,int * i){
+int RR(Simulation sim,int p){
 	return 2;	
 }
-int SPN(Queue queue,int parameter,int * i){
+int SPN(Simulation sim,int p){
 	return 3;
 }
-int SRT(Queue queue,int parameter,int * i){
+int SRT(Simulation sim,int p){
 	return 4;
 }
-int HRRN(Queue queue,int parameter,int * i){
+int HRRN(Simulation sim,int p){
 	return 5;
 }
-int FB1(Queue queue,int parameter,int * i){
+int FB1(Simulation sim,int p){
 	return 6;
 }
-int FB2(Queue queue,int parameter,int * i){
+int FB2(Simulation sim,int p){
 	return 7;
 }
-int AGE(Queue queue,int parameter,int * i){
+int AGE(Simulation sim,int p){
 	return 8;
 }
 
-int (*schedulers[8])(Queue q,int p,int * i) = {FCFS,RR,SPN,SRT,HRRN,FB1,FB2,AGE};
+int (*schedulers[8])(Simulation sim,int p) = {FCFS,RR,SPN,SRT,HRRN,FB1,FB2,AGE};
 Simulation Simulation::currentSim;
 Process * Simulation::currentProcess;
 Algorithm * Simulation::currentAlgo;
@@ -132,16 +132,15 @@ void parse(){
 }
 
 void Simulation::simulate(){
-	Queue *readyQ = new Queue(simLength+noOfProcesses);
 	int service[noOfProcesses];
 	for (int i = 0; i < noOfProcesses; i++) service[i] = processes[i]->service;
 	for(int k = 0 ; k < noOfAlgos ; k++){
-		int (*select)(Queue q,int p,int * i) = ::schedulers[(algos[k]->type)-1];
+		int (*schedule)(Simulation sim,int p) = ::schedulers[(algos[k]->type)-1];
 		int param = algos[k]->parameter;
 		
-		//schedule using this algo
+		schedule(Simulation::currentSim,param);
 
-		for (int i = 0; i < noOfProcesses; i++) service[i] = processes[i]->service;
+		for (int i = 0; i < noOfProcesses; i++) processes[i]->service = service[i];
 	}
 }
 
