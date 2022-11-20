@@ -22,6 +22,7 @@ struct Simulation {
 	int noOfProcesses;
 	Process ** processes;
 	Algorithm ** algos;
+
 	void print(int ** traces);
 	void simulate();
 	void insertProcess( Process * process );
@@ -32,6 +33,19 @@ struct Simulation {
 	static Simulation currentSim;
 	static Process *currentProcess;
 	static Algorithm *currentAlgo;
+};
+
+struct Queue {
+	Process ** array;
+	int head;
+	int tail;
+	int size;
+
+	void push( Process * process );
+	Process * pop();
+	Process ** inspect();
+
+	Queue(int size);
 };
 
 #endif
