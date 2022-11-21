@@ -36,10 +36,11 @@ Simulation::Simulation(){
 	algos = (Algorithm **) malloc( avalAlgos * sizeof( Algorithm * ) );
 }
 
-Process::Process(char* n,int a,int s){
+Process::Process(char* n,int a,int s,int i){
 	strcpy(name,n);
 	arrival = a;
 	service = s;
+	index = i;
 }
 
 void Simulation::insertProcess( Process * process ){
@@ -56,41 +57,203 @@ void Simulation::insertAlgo( Algorithm * algo ){
 	noOfAlgos++;
 }
 
-int FCFS(Simulation sim,int p){
-	return 1;
+void FCFS(Simulation sim,int p){
+	Process * ps = (Process *) malloc( sim.noOfProcesses * sizeof(Process) );
+	for (int i = 0; i < sim.noOfProcesses; i++) ps[i] = *(sim.processes[i]);
+
+	if(!sim.traceOrStats){
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[sim.simLength]{};
+		int start = 0;
+		int clock = 0;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
+		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			
+			// Selection
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				while(p->service){
+					p->service--;
+					mat[p->index][clock] = 2;
+					for (int i = readyQ->head; i < readyQ->tail; i++)
+					{
+						mat[readyQ->array[i]->index][clock] = 1;
+					}
+					clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				}
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+		sim.print("FCFS",ps,mat,sim.traceOrStats,sim.noOfProcesses,sim.simLength);
+	}else{
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[3]{};
+		int start = 0;
+		int clock = 0;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
+		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			
+			// Selection
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				while(p->service){
+					p->service--;
+					clock++;
+					if(!p->service){
+						mat[p->index][0] = clock;
+						mat[p->index][1] = clock - (p->arrival);
+						mat[p->index][2] = mat[p->index][1] / ((float) ps[p->index].service) ;
+					}
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				}
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+		
+		sim.print("FCFS",ps,mat,sim.traceOrStats,sim.noOfProcesses,3);
+	}
 }
-int RR(Simulation sim,int p){
-	return 2;	
+void RR(Simulation sim,int p){
+	if(sim.traceOrStats){
+		
+	}else{
+		
+	}	
 }
-int SPN(Simulation sim,int p){
-	return 3;
+void SPN(Simulation sim,int p){
+	if(sim.traceOrStats){
+		
+	}else{
+		
+	}
 }
-int SRT(Simulation sim,int p){
-	return 4;
+void SRT(Simulation sim,int p){
+	if(sim.traceOrStats){
+		
+	}else{
+		
+	}
 }
-int HRRN(Simulation sim,int p){
-	return 5;
+void HRRN(Simulation sim,int p){
+	if(sim.traceOrStats){
+		
+	}else{
+		
+	}
 }
-int FB1(Simulation sim,int p){
-	return 6;
+void FB1(Simulation sim,int p){
+	if(sim.traceOrStats){
+		
+	}else{
+		
+	}
 }
-int FB2(Simulation sim,int p){
-	return 7;
+void FB2(Simulation sim,int p){
+	if(sim.traceOrStats){
+		
+	}else{
+		
+	}
 }
-int AGE(Simulation sim,int p){
-	return 8;
+void AGE(Simulation sim,int p){
+	if(sim.traceOrStats){
+		
+	}else{
+		
+	}
 }
 
-int (*schedulers[8])(Simulation sim,int p) = {FCFS,RR,SPN,SRT,HRRN,FB1,FB2,AGE};
+void (*schedulers[8])(Simulation sim,int p) = {FCFS,RR,SPN,SRT,HRRN,FB1,FB2,AGE};
 Simulation Simulation::currentSim;
 Process * Simulation::currentProcess;
 Algorithm * Simulation::currentAlgo;
 
+void Simulation::print(char * algo,Process * processes,float ** mat,int traceOrStats,int rows,int columns){
+	if(!traceOrStats){
+		printf("%s", algo);
+		for (int i = 0; i < 6-strlen(algo); i++) printf(" ");
+		for (int i = 0; i <= columns; i++) printf("%d ",i%10);
+		printf("\n");
+		for (int i = 0; i < (columns*2)+8; i++) printf("-");
+		printf("\n");
+		for (int i = 0; i < rows; i++)
+		{
+			printf("%s     |",processes[i].name);
+			for (int j = 0; j < columns; j++)
+			{
+				printf("%s|",mat[i][j] == 0? " " : (mat[i][j] == 1? ".":"*"));
+			}
+			printf(" \n");
+		}
+		for (int i = 0; i < (columns*2)+8; i++) printf("-");
+		printf("\n");
+		printf("\n");
+	} else{
+		printf("%s\n", algo);
+		printf("Process    |");
+		for (int i = 0; i < rows; i++) printf("  %s  |",processes[i].name);
+		printf("\n");
+		
+		printf("Arrival    |");
+		for (int i = 0; i < rows; i++) printf(" %s%d  |",processes[i].arrival > 9? "":" ",processes[i].arrival);
+		printf("\n");
+		
+		printf("Service    |");
+		for (int i = 0; i < rows; i++) printf(" %s%d  |",processes[i].service > 9? "":" ",processes[i].service);
+		printf(" Mean|\n");
+		
+		printf("Finish     |");
+		for (int i = 0; i < rows; i++) printf(" %s%.0f  |",mat[i][0] > 9? "":" ",mat[i][0]);
+		printf("-----|\n");
+		
+		printf("Turnaround |");
+		for (int i = 0; i < rows; i++) printf(" %s%.0f  |",mat[i][1] > 9? "":" ",mat[i][1]);
+		float sumT = 0;
+		for (int i = 0; i < rows; i++) sumT+= mat[i][1];
+		sumT /= rows;
+		printf("%s%.2f|\n",sumT >= 10? "":" ",sumT);
+		
+		printf("NormTurn   |");
+		for (int i = 0; i < rows; i++) printf("%s%.2f|",mat[i][2] >= 10? "":" ",mat[i][2]);
+		float sumNT = 0;
+		for (int i = 0; i < rows; i++) sumNT+= mat[i][2];
+		sumNT /= rows;
+		printf("%s%.2f|\n",sumNT >= 10? "":" ",sumNT);
+		
+		printf("\n");
+	}
+}
+
 void parse(){
 	char line[50];
 	char * tok;
+	
 	cin.getline(line,50);
 	Simulation::currentSim.traceOrStats = (strcmp(line,"trace") != 0);
+
 	cin.getline(line,50);
 	tok = strtok(line,",-");
 	while (tok != NULL){
@@ -103,39 +266,30 @@ void parse(){
 		Simulation::currentSim.insertAlgo( Simulation::currentAlgo );
 		tok = strtok(NULL,",-");
 	}
+	
 	cin.getline(line,50);
 	Simulation::currentSim.simLength = atoi(line);
+	
 	cin.getline(line,50);
 	int noOflines = atoi(line);
+	
 	Simulation::currentSim.processes = (Process **) malloc( noOflines * sizeof( Process * ) );
 	for (int i = 0; i < noOflines; i++){
 		cin.getline(line,50);
 		char *name = strtok(line,",");
 		int arrival = atoi(strtok(NULL,","));
 		int service = atoi(strtok(NULL,","));
-		Simulation::currentProcess = new Process(name,arrival,service);
+		Simulation::currentProcess = new Process(name,arrival,service,Simulation::currentSim.noOfProcesses);
 		Simulation::currentSim.insertProcess( Simulation::currentProcess );
 	}
-	/*printf("traceOrStats= %d\nsimLength= %d\nnoOfAlgos= %d\nnoOfProcesses= %d\n",Simulation::currentSim.traceOrStats,Simulation::currentSim.simLength,Simulation::currentSim.noOfAlgos,Simulation::currentSim.noOfProcesses);
-	printf("\nAlgos:\ntype parameter\n");
-	for (int i = 0; i < Simulation::currentSim.noOfAlgos; ++i)
-	{
-		Algorithm * a = Simulation::currentSim.algos[i];
-		printf("%d    %d\n", a->type,a->parameter);
-	}
-	printf("\nprocesses:\nname arrival service\n");
-	for (int i = 0; i < Simulation::currentSim.noOfProcesses; ++i)
-	{
-		Process * p = Simulation::currentSim.processes[i];
-		printf("%s    %d       %d\n", p->name,p->arrival,p->service);
-	}*/
+
 }
 
 void Simulation::simulate(){
 	int service[noOfProcesses];
 	for (int i = 0; i < noOfProcesses; i++) service[i] = processes[i]->service;
 	for(int k = 0 ; k < noOfAlgos ; k++){
-		int (*schedule)(Simulation sim,int p) = ::schedulers[(algos[k]->type)-1];
+		void (*schedule)(Simulation sim,int p) = ::schedulers[(algos[k]->type)-1];
 		int param = algos[k]->parameter;
 		
 		schedule(Simulation::currentSim,param);
