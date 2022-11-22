@@ -25,7 +25,7 @@ struct Simulation {
 	Process ** processes;
 	Algorithm ** algos;
 
-	void print(char * algo,Process * processes,float ** mat,int traceOrStats,int rows,int columns);
+	void print(const char * algo,Process * processes,float ** mat,int traceOrStats,int rows,int columns);
 	void simulate();
 	void insertProcess( Process * process );
 	void insertAlgo( Algorithm * algo);
