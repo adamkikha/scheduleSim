@@ -57,7 +57,7 @@ void Simulation::insertAlgo( Algorithm * algo ){
 	noOfAlgos++;
 }
 
-void FCFS(Simulation sim,int p){
+void FCFS(Simulation sim,int param){
 	Process * ps = (Process *) malloc( sim.noOfProcesses * sizeof(Process) );
 	for (int i = 0; i < sim.noOfProcesses; i++) ps[i] = *(sim.processes[i]);
 
@@ -136,49 +136,472 @@ void FCFS(Simulation sim,int p){
 		sim.print("FCFS",ps,mat,sim.traceOrStats,sim.noOfProcesses,3);
 	}
 }
-void RR(Simulation sim,int p){
-	if(sim.traceOrStats){
+
+
+
+
+void RR(Simulation sim,int param){
+	Process * ps = (Process *) malloc( sim.noOfProcesses * sizeof(Process) );
+	for (int i = 0; i < sim.noOfProcesses; i++) ps[i] = *(sim.processes[i]);
+
+	if(!sim.traceOrStats){
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[sim.simLength]{};
+		int start = 0;
+		int clock = 0;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
 		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			
+			// Selection
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				for(int i=0;i < param && p->service;i++){
+					p->service--;
+					mat[p->index][clock] = 2;
+					for (int i = readyQ->head; i < readyQ->tail; i++)
+					{
+						mat[readyQ->array[i]->index][clock] = 1;
+					}
+					clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				}
+				if(p->service) readyQ->push(p);
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+		char * name = (char *) malloc(5*sizeof(char));
+		sprintf(name,"RR-%d",param);
+		sim.print(name,ps,mat,sim.traceOrStats,sim.noOfProcesses,sim.simLength);
 	}else{
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[3]{};
+		int start = 0;
+		int clock = 0;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
 		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			
+			// Selection
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				for(int i=0;i < param && p->service;i++){
+					p->service--;
+					clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				}
+				if(p->service) readyQ->push(p);
+				else {
+					mat[p->index][0] = clock;
+					mat[p->index][1] = clock - (p->arrival);
+					mat[p->index][2] = mat[p->index][1] / ((float) ps[p->index].service) ;
+				}
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+		char * name = (char *) malloc(5*sizeof(char));
+		sprintf(name,"RR-%d",param);
+		sim.print(name,ps,mat,sim.traceOrStats,sim.noOfProcesses,3);
 	}	
 }
-void SPN(Simulation sim,int p){
+
+
+
+void SPN(Simulation sim,int param){
+	Process * ps = (Process *) malloc( sim.noOfProcesses * sizeof(Process) );
+	for (int i = 0; i < sim.noOfProcesses; i++) ps[i] = *(sim.processes[i]);
+
+	if(!sim.traceOrStats){
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[sim.simLength]{};
+		int start = 0;
+		int clock = 0;
+		int minService;
+		int minIndex = 0;
+		Process * temp;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
+		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			// Selection
+			minService = sim.simLength;
+			for (int i = readyQ->head; i < readyQ->tail; i++)
+			{
+				if(readyQ->array[i]->service < minService){
+					minService = readyQ->array[i]->service;
+					minIndex = i;
+				}
+			}
+			temp = readyQ->array[readyQ->head];
+			readyQ->array[readyQ->head] = readyQ->array[minIndex];
+			readyQ->array[minIndex] = temp;
+
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				while(p->service){
+					p->service--;
+					mat[p->index][clock] = 2;
+					for (int i = readyQ->head; i < readyQ->tail; i++)
+					{
+						mat[readyQ->array[i]->index][clock] = 1;
+					}
+					clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				}
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+		sim.print("SPN",ps,mat,sim.traceOrStats,sim.noOfProcesses,sim.simLength);
+	}else{
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[3]{};
+		int start = 0;
+		int clock = 0;
+		int minService;
+		int minIndex = 0;
+		Process * temp;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
+		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			
+			// Selection
+			minService = sim.simLength;
+			for (int i = readyQ->head; i < readyQ->tail; i++)
+			{
+				if(readyQ->array[i]->service < minService){
+					minService = readyQ->array[i]->service;
+					minIndex = i;
+				}
+			}
+			temp = readyQ->array[readyQ->head];
+			readyQ->array[readyQ->head] = readyQ->array[minIndex];
+			readyQ->array[minIndex] = temp;
+
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				while(p->service){
+					p->service--;
+					clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				}
+				mat[p->index][0] = clock;
+				mat[p->index][1] = clock - (p->arrival);
+				mat[p->index][2] = mat[p->index][1] / ((float) ps[p->index].service) ;
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+		
+		sim.print("SPN",ps,mat,sim.traceOrStats,sim.noOfProcesses,3);
+	}
+}
+
+
+
+void SRT(Simulation sim,int param){
+	Process * ps = (Process *) malloc( sim.noOfProcesses * sizeof(Process) );
+	for (int i = 0; i < sim.noOfProcesses; i++) ps[i] = *(sim.processes[i]);
+
+	if(!sim.traceOrStats){
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[sim.simLength]{};
+		int start = 0;
+		int clock = 0;
+		int minService;
+		int minIndex = 0;
+		Process * temp;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
+		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			
+			// Selection
+			minService = sim.simLength;
+			for (int i = readyQ->head; i < readyQ->tail; i++)
+			{
+				if(readyQ->array[i]->service < minService){
+					minService = readyQ->array[i]->service;
+					minIndex = i;
+				}
+			}
+			temp = readyQ->array[readyQ->head];
+			readyQ->array[readyQ->head] = readyQ->array[minIndex];
+			readyQ->array[minIndex] = temp;
+
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				if (start < sim.noOfProcesses){
+					while( sim.processes[start]->arrival != clock && p->service){
+						p->service--;
+						mat[p->index][clock] = 2;
+						for (int i = readyQ->head; i < readyQ->tail; i++)
+						{
+							mat[readyQ->array[i]->index][clock] = 1;
+						}
+						clock++;
+					}
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+					if(p->service) readyQ->push(p);
+				} else {
+					while(p->service){
+						p->service--;
+						mat[p->index][clock] = 2;
+						for (int i = readyQ->head; i < readyQ->tail; i++)
+						{
+							mat[readyQ->array[i]->index][clock] = 1;
+						}
+						clock++;
+					}
+				}
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+
+		sim.print("SRT",ps,mat,sim.traceOrStats,sim.noOfProcesses,sim.simLength);
+	}else{
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[3]{};
+		int start = 0;
+		int clock = 0;
+		int minService;
+		int minIndex = 0;
+		Process * temp;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
+		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			
+			// Selection
+			minService = sim.simLength;
+			for (int i = readyQ->head; i < readyQ->tail; i++)
+			{
+				if(readyQ->array[i]->service < minService){
+					minService = readyQ->array[i]->service;
+					minIndex = i;
+				}
+			}
+			temp = readyQ->array[readyQ->head];
+			readyQ->array[readyQ->head] = readyQ->array[minIndex];
+			readyQ->array[minIndex] = temp;
+
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				if (start < sim.noOfProcesses){
+					while(sim.processes[start]->arrival != clock && p->service){
+						p->service--;
+						clock++;
+					}
+					if(!p->service) {
+						mat[p->index][0] = clock;
+						mat[p->index][1] = clock - (p->arrival);
+						mat[p->index][2] = mat[p->index][1] / ((float) ps[p->index].service) ;
+					}
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+					if(p->service) readyQ->push(p);
+				} else {
+					while(p->service){
+						p->service--;
+						clock++;
+					}
+					mat[p->index][0] = clock;
+					mat[p->index][1] = clock - (p->arrival);
+					mat[p->index][2] = mat[p->index][1] / ((float) ps[p->index].service) ;
+				}
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+
+		sim.print("SRT",ps,mat,sim.traceOrStats,sim.noOfProcesses,3);
+	}
+}
+
+
+
+void HRRN(Simulation sim,int param){
+	Process * ps = (Process *) malloc( sim.noOfProcesses * sizeof(Process) );
+	for (int i = 0; i < sim.noOfProcesses; i++) ps[i] = *(sim.processes[i]);
+
+	if(!sim.traceOrStats){
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[sim.simLength]{};
+		int start = 0;
+		int clock = 0;
+		float ratio;
+		float maxRatio;
+		int maxIndex = 0;
+		Process * temp;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
+		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			// Selection
+			maxRatio = 1;
+			for (int i = readyQ->head; i < readyQ->tail; i++)
+			{
+				ratio = ( (float) (clock - readyQ->array[i]->arrival) / (float) readyQ->array[i]->service) + 1;
+				if(ratio > maxRatio){
+					maxRatio = ratio;
+					maxIndex = i;
+				} else if (ratio == maxRatio){
+					if (strcmp(readyQ->array[i]->name,readyQ->array[maxIndex]->name) < 0) maxIndex = i;
+				}
+			}
+			temp = readyQ->array[readyQ->head];
+			readyQ->array[readyQ->head] = readyQ->array[maxIndex];
+			readyQ->array[maxIndex] = temp;
+
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				while(p->service){
+					p->service--;
+					mat[p->index][clock] = 2;
+					for (int i = readyQ->head; i < readyQ->tail; i++)
+					{
+						mat[readyQ->array[i]->index][clock] = 1;
+					}
+					clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				}
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+		sim.print("HRRN",ps,mat,sim.traceOrStats,sim.noOfProcesses,sim.simLength);
+	}else{
+		float ** mat = new float *[sim.noOfProcesses];
+		for (int i = 0; i < sim.noOfProcesses; ++i) mat[i] = new float[3]{};
+		int start = 0;
+		int clock = 0;
+		float ratio;
+		float maxRatio;
+		int maxIndex = 0;
+		Process * temp;
+		Queue * readyQ = new Queue(sim.noOfProcesses+sim.simLength);
+		Process * p;
+		
+		// Admission
+		while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+		while (clock < sim.simLength)
+		{
+			
+			// Selection
+			maxRatio = 1;
+			for (int i = readyQ->head; i < readyQ->tail; i++)
+			{
+				ratio = ( (float) (clock - readyQ->array[i]->arrival) / (float) readyQ->array[i]->service) + 1;
+				if(ratio > maxRatio){
+					maxRatio = ratio;
+					maxIndex = i;
+				} else if (ratio == maxRatio){
+					if (strcmp(readyQ->array[i]->name,readyQ->array[maxIndex]->name) < 0) maxIndex = i;
+				}
+			}
+			temp = readyQ->array[readyQ->head];
+			readyQ->array[readyQ->head] = readyQ->array[maxIndex];
+			readyQ->array[maxIndex] = temp;
+
+			p = readyQ->pop();
+
+			// Service
+			if (p){
+				while(p->service){
+					p->service--;
+					clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				}
+				mat[p->index][0] = clock;
+				mat[p->index][1] = clock - (p->arrival);
+				mat[p->index][2] = mat[p->index][1] / ((float) ps[p->index].service) ;
+			} else {
+				if (start < sim.noOfProcesses){
+					while (sim.processes[start]->arrival != clock && clock < sim.simLength) clock++;
+					while (start < sim.noOfProcesses && sim.processes[start]->arrival == clock) readyQ->push(sim.processes[start++]);
+				} else clock = sim.simLength;
+			}
+		}
+		
+		sim.print("HRRN",ps,mat,sim.traceOrStats,sim.noOfProcesses,3);
+	}
+}
+void FB1(Simulation sim,int param){
 	if(sim.traceOrStats){
 		
 	}else{
 		
 	}
 }
-void SRT(Simulation sim,int p){
+void FB2(Simulation sim,int param){
 	if(sim.traceOrStats){
 		
 	}else{
 		
 	}
 }
-void HRRN(Simulation sim,int p){
-	if(sim.traceOrStats){
-		
-	}else{
-		
-	}
-}
-void FB1(Simulation sim,int p){
-	if(sim.traceOrStats){
-		
-	}else{
-		
-	}
-}
-void FB2(Simulation sim,int p){
-	if(sim.traceOrStats){
-		
-	}else{
-		
-	}
-}
-void AGE(Simulation sim,int p){
+void AGE(Simulation sim,int param){
 	if(sim.traceOrStats){
 		
 	}else{
