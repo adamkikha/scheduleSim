@@ -7,13 +7,7 @@ sim.o: sim.cc
 	$(CC) -c sim.cc
 
 lab4: sim.o
-	$(CC) -o lab4 sim.o -ll
-
-test.o: test.cc
-	$(CC) -c test.cc
-
-test: test.o
-	$(CC) -o test test.o -ll	
+	$(CC) -o lab4 sim.o -ll	
 
 clean:
-	rm -f test lab4 *.o
+	rm -f lab4 sim.o

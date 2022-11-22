@@ -45,7 +45,6 @@ struct Queue {
 
 	void push( Process * process );
 	Process * pop();
-	Process ** inspect();
 
 	Queue(int size);
 };
